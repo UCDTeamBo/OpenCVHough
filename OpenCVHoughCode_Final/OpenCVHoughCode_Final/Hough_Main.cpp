@@ -1,6 +1,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/opencv.hpp>
 #include <stdio.h>
 #include <iostream>
 using namespace cv;
@@ -95,8 +96,8 @@ int main()
 		//cvtColor(image_input, hsv_image, CV_BGR2HSV);
 		//Canny(grey_image, grey_image, 60, 60);
 		
-		threshold(grey_image, grey_image, 170, 255, THRESH_BINARY);
-		inRange(image_input, Scalar(10,90,160), Scalar(90,230,250), color_threshed);
+		threshold(grey_image, grey_image, 220, 255, THRESH_BINARY);
+		inRange(image_input, Scalar(10,90,200), Scalar(140,230,250), color_threshed);
 
 		cvtColor(grey_image, color_image, CV_GRAY2BGR);
 
@@ -106,6 +107,7 @@ int main()
 
 
 		findContours(color_threshed, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+
 
 		vector<vector<Point> > contours_poly(contours.size());
 		vector<Rect> boundRect(contours.size());
@@ -124,11 +126,16 @@ int main()
 		threshold(drawing, drawing, 256, 256, THRESH_BINARY);
 		Mat drawingFinal;
 		Mat temp;
+		int top_x, top_y, bottom_x, bottom_y;
 		for (int i = 0; i< contours.size(); i++)
 		{
 			Scalar color = Scalar(255, 255, 255);
 			drawContours(drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point());
-			rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, CV_FILLED, 8, 0);
+			top_x = boundRect[i].tl().x;
+			top_y = boundRect[i].tl().y;
+			bottom_x = boundRect[i].br().x;
+			bottom_y = boundRect[i].br().y;
+			rectangle(drawing, Point(top_x - 5, top_y - 5), Point(bottom_x + 5, bottom_y + 5) , color, CV_FILLED, 8, 0);
 			
 		}
 		//grey_image.copyTo(drawingF, drawing);
@@ -136,18 +143,82 @@ int main()
 		bitwise_and(drawing, grey_image, drawingFinal);
 
 		
+		
+		erode(drawingFinal, drawingFinal, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+		//dilate(drawingFinal, drawingFinal, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+
+		vector<vector<Point> > contours_2;
+		vector<Vec4i> hierarchy_2;
+		vector<Vec3f> vecCircles_2;
+		vector<Vec3f>::iterator itrCircles_2;
+
+		Mat Copy;
+		drawingFinal.copyTo(Copy);
+		cvtColor(drawingFinal,drawingFinal, CV_GRAY2BGR);
+		//Canny(Copy, Copy, 60, 60);
+		findContours(Copy, contours_2, hierarchy_2, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+
+		vector<vector<Point> > contours_poly_2(contours_2.size());
+		vector<Rect> boundRect_2(contours_2.size());
+		vector<Point2f>center_2(contours_2.size());
+		vector<float>radius_2(contours_2.size());
+
+		for (int i = 0; i < contours_2.size(); i++)
+		{
+			approxPolyDP(Mat(contours_2[i]), contours_poly_2[i], 3, true);
+			boundRect_2[i] = boundingRect(Mat(contours_poly_2[i]));
+		}
+
+		int max_size = 0;
+		int box_size = 0;
+		int center_x=0, center_y=0;
+		std::cout << "RRRG" << contours_2.size() << "\n";
+
+		if (contours_2.size() == 0){
+			continue; //COULDNT FIND CROSS!!!
+		}
+
+		int count = 0;
+		int top_x_2, top_y_2, bottom_x_2, bottom_y_2, middle_x, middle_y;
+		for (int i = 0; i< contours_2.size(); i++)
+		{
+			Scalar color = Scalar(80, 0, 80);
+			//drawContours(drawingFinal, contours_poly_2, i, color, 1, 8, vector<Vec4i>(), 0, Point());
+			top_x_2 = boundRect_2[i].tl().x;
+			top_y_2 = boundRect_2[i].tl().y;
+			bottom_x_2 = boundRect_2[i].br().x;
+			bottom_y_2 = boundRect_2[i].br().y;
+			box_size = abs(bottom_x_2 - top_x_2)*abs(top_y_2 - bottom_y_2);
+			middle_x = (top_x_2 + bottom_x_2) / 2;
+			middle_y = (top_y_2 + bottom_y_2) / 2;
+			if (box_size > max_size)
+			{
+				max_size = box_size;
+				center_x = middle_x;
+				center_y = middle_y;
+				
+			}
+			else
+			{
+				//take average of blobs
+			}
+			
+		}
+
+		circle(drawingFinal, Point(center_x, center_y), 32, Scalar(80, 0, 80), 1, 8);
+		//fastNlMeansDenoising(drawingFinal, drawingFinal,3,7,7);
 		namedWindow("Transformed", WINDOW_AUTOSIZE);
 		namedWindow("Original", WINDOW_AUTOSIZE);
 		
 		imshow("Transformed", drawingFinal);
 		imshow("Original", image_input);
 
-		//imwrite("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/HSV_Out.png", image_input);*/
+		//imwrite("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/HSV_Out.png", image_input);
 
-		Mat results;
+		/*Mat results;
 		results = MatchingMethod(image_input);
 		namedWindow("Template", WINDOW_AUTOSIZE);
-		imshow("Template", results);
+		imshow("Template", results);*/
 
 		waitKey(0);
 
