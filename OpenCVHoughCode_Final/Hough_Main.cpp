@@ -1,16 +1,21 @@
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+
+//Initiating portions of the code: Make sure Camera_Capture is commented in order to have it run of webcam
+//#define Camera_Capture
+#define Display_Results
+//#define Template_Process;
+
+//#include "opencv2/core/core.hpp"
+#ifdef Display_Results
+//#include "opencv2/highgui/highgui.hpp"
+#endif
+//#include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
 #include <iostream>
+#include <ctime>
+#include <cstdlib>
+
 using namespace cv;
-
-
-//Initiating portions of the code: Make sure Camera_Capture is commented in order to have it run of webcam
-#define Camera_Capture
-#define Display_Results
-//#define Template_Process;
 
 
 //Definitions
@@ -32,6 +37,10 @@ Mat Copy;
 int count;
 int top_x_2, top_y_2, bottom_x_2, bottom_y_2, middle_x, middle_y;
 int num_templates=10;
+int height, width;
+Size s;
+
+int Angelas_magic(int x_of_circle, int y_of_circle, int w_of_image, int h_of_image);
 
 
 Mat MatchingMethod(Mat Source)
@@ -104,10 +113,13 @@ int main()
 	Mat image_input,grey_image,color_image, hsv_image, color_threshed;
 	bool Success;
 
+
 #ifdef Camera_Capture 
 	VideoCapture cap(0);
 #else
 	VideoCapture cap("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/IMG_0450.mov");
+	//VideoWriter out;
+	//out.open("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/IMG_0450_out.mov", CV_FOURCC('D', 'I', 'V', 'X'), 120, cv::Size(1200, 1600), true);
 #endif
 
 #ifdef Display_Results
@@ -124,6 +136,7 @@ int main()
 		
 		if (!Success){
 			std::cout << "Cannot read a frame from video stream" << "\n";
+			break;
 		}
 
 		//Convert to grayscale
@@ -131,10 +144,10 @@ int main()
 		
 		//Threshold image BINARY
 		threshold(grey_image, grey_image, 220, 255, THRESH_BINARY);
-
+		
 		//Threshold image ORANGE_Color (run on original image)
 		inRange(image_input, Scalar(10,90,200), Scalar(140,230,250), color_threshed);
-
+		
 		cvtColor(grey_image, color_image, CV_GRAY2BGR);
 
 		//Isolate orange colors byy finding contours then encapsulating in Boxes (Boxes are filled with white to generate region with orange)
@@ -169,11 +182,11 @@ int main()
 			
 		}
 		
-
+		
 		//Combine the black and white and orange region image to find region with cross
 		bitwise_and(drawing, grey_image, drawingFinal);
 
-		
+		imwrite("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/Final_Image.png", drawingFinal);
 		//Eliminate noise within the image NEED TO ADD CENTER PROTOCOL 
 		erode(drawingFinal, drawingFinal, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 		//dilate(drawingFinal, drawingFinal, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
@@ -202,10 +215,6 @@ int main()
 		int center_x=0, center_y=0;
 		//std::cout << "RRRG" << contours_2.size() << "\n";
 
-		if (contours_2.size() == 0){
-			continue; //COULDNT FIND CROSS!!!
-		}
-
 		count = 0;
 		for (int i = 0; i< contours_2.size(); i++)
 		{
@@ -232,11 +241,25 @@ int main()
 			
 		}
 
+		
 		circle(drawingFinal, Point(center_x, center_y), 32, Scalar(0, 255, 0), 1, 8);
+		std::cout << "Image X coordinate: " << center_x << " " << "Image Y coordinate: " << center_y << "\n";
+		
+		//s = drawingFinal.size();
+		//height = s.height();
+		//width = s.width();
+		
+		height = drawingFinal.size.p[0];
+		width = drawingFinal.size.p[1];
+		std::cout << "Image Heigth: " << height << "Image Width: " << width <<"\n";
+		Angelas_magic(center_x, center_y, width, height);
+		
 		
 #ifdef Display_Results
 		imshow("Transformed", drawingFinal);
+		//waitKey(1);
 		imshow("Original", image_input);
+		//out.write(drawingFinal);
 #endif
 
 #ifdef Camera_Capture 
@@ -244,7 +267,10 @@ int main()
 #else
 		waitKey(0);
 #endif
-		
+		if (contours_2.size() == 0){
+			std::cout << "Error: Couldn't find cross!!" << "\n";
+			//COULDNT FIND CROSS!!!
+		}
 		//imwrite("C:/Users/Lindsey/Documents/Visual Studio 2013/Projects/OpenCVHoughCode_Final/HSV_Out.png", image_input);
 
 #ifdef Template_Process
@@ -262,6 +288,7 @@ int main()
 		k = cvWaitKey(0);
 		if (k == 'q')
 		{ 
+			//out.release();
 			break; 
 		}
 #endif
@@ -282,8 +309,222 @@ int main()
 	return(0);
 }
 
+int Angelas_magic(int x_of_circle, int y_of_circle, int w_of_image, int h_of_image)
+{
+	// variables
+	int ctr_width = x_of_circle; // horizontal position of center of cross (from circle)
+	int ctr_height = y_of_circle; // vertical position of center of cross (from circle)
+	int w = w_of_image; // width of entire image
+	int h = h_of_image; // height of entire image
+	// may not want to include w_i and h_i, the width and height of the cross in pixels
+	// these are guesses
+	int w_i = w/10;
+	int h_i = h/10;
+	int distance = 10; // determined by LIDAR or size of cross
+	int output = 000;
+	time_t start_time;
+	time_t now;
 
 
+	// set start point
+	/*std::cout << "Please enter horizontal coordinate of center of cross: " << endl;
+	std::cin >> ctr_width;
+	std::cout << "Please enter vertical coordinate of center of cross: " << endl;
+	std::cin >> ctr_height;
+
+	std::cout << "Please enter distance to object in feet: " << endl;
+	std::cin >> distance;
+
+	std::cout << "Clocks per second: " << CLOCKS_PER_SEC << endl;*/
+
+
+		//commented for test purposes		output = 000; // hover until given directions to move
+		// may not be necessary with blocking statements
+
+		if (ctr_width < (w/2 - w_i/2))
+		{
+			// cross is on left side, need to move left
+			std::cout << "Cross is on left side." << "\n";
+			output = 100; // move left, specify duration?
+			// will it do this until conditional not true?
+			// may need to set with blocking statement in verilog
+			std::cout << "Output signal is: " << output << "\n";
+
+			// keep output for certain amt of time
+			// set output for time
+
+			std::cout << "entering diff" << "\n";
+			start_time = time(NULL);
+			std::cout << "start time is: " << start_time << "\n";
+			now = time(NULL);
+			std::cout << "time is" << now << " looping" << "\n";
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+			std::cout << "now is " << now << "\n";
+			std::cout << "Entering hover mode!" << "\n";
+
+			output = 000;
+			// every time this runs, end our code and go back to OCV code
+
+			ctr_width += 100;
+		}
+
+		else if (ctr_width > (w/2 + w_i/2))
+		{
+			// cross is on right side, need to move right
+			std::cout << "Cross is on right side." << "\n";
+			output = 101;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			output = 000;
+			//end of loop, copied
+
+
+			ctr_width -= 100;
+		}
+
+		if (ctr_height > (h / 2 + h_i / 2))
+		{
+			// cross is on lower half, move down
+			std::cout << "Cross is on lower half." << "\n";
+			//output = 011;
+			output = 22;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			output = 000;
+			//end of loop, copied
+
+			ctr_height += 100;
+		}
+
+		else if (ctr_height < (h / 2 - h_i / 2))
+		{
+			// cross is on upper half, move up/down
+			std::cout << "Cross is on upper half." << "\n";
+			//output = 010;
+			output = 77;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			output = 000;
+			//end of loop, copied
+
+			ctr_height -= 100;
+		}
+
+		if (distance > 10)
+		{
+			std::cout << "Cross is still " << distance << " away." << "\n";
+			// if using a blocking statement, distance might not update
+			// this may not be necessary if nonblocking, just use 4
+			// move forward
+			output = 001;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			output = 000;
+			//end of loop, copied
+
+			distance--;
+		}
+
+		else if (distance > 4)
+		{
+			std::cout << "Cross is still " << distance << " away." << "\n";
+			// after centering again, move closer
+			output = 001;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			output = 000;
+			//end of loop, copied
+
+			distance--;
+		}
+
+		else
+		{
+			// should be centered
+			// distance should be <= 4
+			// execute avoidance sequence
+			output = 111;
+
+			//start of loop, copied
+			std::cout << "Output signal is: " << output << "\n";
+			// timing
+			start_time = time(NULL);
+			now = time(NULL);
+
+			while ((difftime(now, start_time)) < 1)
+			{
+				now = time(NULL);
+
+			}
+
+			//end of loop, copied WITHOUT output = 000
+			std::cout << "avoid" << "\n";
+		}
+
+		std::cout << "Output signal is: " << output << "\n";
+
+	return (0);
+}
 
 /*HoughLines(grey_image, Hough_Output, 1, CV_PI / 180, 50, 0, 0);
 
