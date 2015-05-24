@@ -65,7 +65,6 @@ time_t start_time, now;
 
 int Angelas_magic(int x_of_circle, int y_of_circle, int w_of_image, int h_of_image);
 
-
 Mat MatchingMethod(Mat Source)
 {
 	/// Source image to display
@@ -364,6 +363,7 @@ ChrisBird1313 (Skype)
 
 int Angelas_magic(int x_of_circle, int y_of_circle, int w_of_image, int h_of_image)
 {
+	//Top left of image is 0,0 by OpenCV Convention
 	/* --- BEGIN ACTION LEFT/RIGHT --- */
 
 	if (ctr_width < (w/2 - w_i/2)) //Cross: Left - Move: Left
@@ -464,21 +464,6 @@ int Angelas_magic(int x_of_circle, int y_of_circle, int w_of_image, int h_of_ima
 	}
 
 	else if (switchValue = 1) //Cross: Ahead - Move: Ahead
-	{
-		output = 001;
-		*(led) = 1;
-		start_time = time(NULL);
-		now = time(NULL);
-		while ((difftime(now, start_time)) < 1)
-		{
-			now = time(NULL);
-		}
-		output = 000;
-		*(led) = 0;
-		distance--;
-	}
-
-	else if (switchValue = 0) //Cross: Ahead - Move: Ahead
 	{
 		output = 001;
 		*(led) = 1;
